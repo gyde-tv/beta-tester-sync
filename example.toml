@@ -1,0 +1,11 @@
+[sources.campaign_monitor]
+list_id=""
+api_key=""
+
+[destinations.testflight]
+app_id=""
+login=""
+password=""
+
+[destinations.slack]
+token=""
