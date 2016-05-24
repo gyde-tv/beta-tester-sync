@@ -21,7 +21,7 @@ module Syncer
     def self.from_config(configuration)
       parts = internal_configuration_key.split(".")
       if internal = parts.inject(configuration) { |c, k| (c || {})[k] }
-        return nil if internal['enabled'] == false
+        return nil if internal['enabled'].to_s == 'false'
         new internal
       else
         nil

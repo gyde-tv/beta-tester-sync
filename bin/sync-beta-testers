@@ -1,14 +1,17 @@
 #!/usr/bin/env ruby
 
-require 'toml'
-
 parent = File.dirname(File.dirname(File.expand_path(__FILE__)))
 $LOAD_PATH.unshift File.join(parent, 'lib')
 
-config_path = ARGV.first || "config.toml"
-raise "No configuration file" unless File.exist?(config_path)
+require 'toml'
+require 'syncer/environment_configuration'
 
-config = TOML.load_file config_path
+config = Syncer::EnvironmentConfiguration.new.from_env
+if config.empty?
+  config_path = ARGV.first || "config.toml"
+  raise "No configuration file" unless File.exist?(config_path)
+  config = TOML.load_file config_path
+end
 
 require 'syncer/runner'
 Syncer::Runner.new(config).run
