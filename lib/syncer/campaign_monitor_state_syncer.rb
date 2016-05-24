@@ -1,10 +1,14 @@
 module Syncer
+
+
   class CampaignMonitorStateSyncer
 
-    attr_reader :emails, :field, :mapping, :names
+    attr_reader :api_key, :list_id, :emails, :field, :mapping, :names
 
 
-    def initialize(emails, field, mapping, names = {})
+    def initialize(api_key, list_id, emails, field, mapping, names = {})
+      @api_key = api_key
+      @list_id = list_id
       @emails = Array.wrap(emails).map(&:downcase)
       @field = field
       @mapping = mapping
@@ -36,7 +40,7 @@ module Syncer
             details['Name'] = name if name
           end
         end
-        result = CreateSend::Subscriber.import cm_auth, cm_list_id, importable, false
+        result = CreateSend::Subscriber.import cm_auth, list_id, importable, false
       end
 
     end
@@ -44,17 +48,13 @@ module Syncer
     private
 
     def cm_list
-      @cm_list ||= CreateSend::List.new(cm_auth, cm_list_id)
+      @cm_list ||= CreateSend::List.new(cm_auth, list_id)
     end
 
     def cm_auth
       {
-        api_key: ENV.fetch("CM_API_KEY")
+        api_key: api_key
       }
-    end
-
-    def cm_list_id
-      ENV.fetch('CM_LIST_ID')
     end
 
     def all_subcribers_for_list(list)

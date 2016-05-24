@@ -1,8 +1,9 @@
 module Syncer
 
-  def self.diff_people(a, b)
-    ia = a.index_by(&:email)
-    ib = b.index_by(&:email)
+  def self.diff_by(a, b, &field)
+    ia = Hash[a.map { |v| [field.call(v), v]} ]
+    ib = Hash[b.map { |v| [field.call(v), v]} ]
+    p [ia, ib]
     (ia.keys - ib.keys).map { |k| ia[k] }.compact
   end
 
@@ -10,7 +11,9 @@ module Syncer
     attr_reader :configuration
 
     def self.from_config(configuration)
-      if internal = configuration[internal_configuration_key]
+      parts = internal_configuration_key.split(".")
+      if internal = parts.inject(configuration) { |c, k| (c || {})[k] }
+        return nil if internal['enabled'] == false
         new internal
       else
         nil
@@ -28,86 +31,31 @@ module Syncer
     end
 
     def self.internal_configuration_key
-      name.gsub("Syncer::", '').gsub("::", ".")
+      name.gsub("Syncer::", '').gsub("::", ".").gsub(/([a-z])([A-Z])/, '\1_\2').downcase
+    end
+
+    def self.service_key
+      @service_key ||= internal_configuration_key.split(".").last
     end
 
   end
 
-  class Person < Struct.new(:email, :first_name, :last_name)
-  end
+  class Person < Struct.new(:email, :first_name, :last_name, :synced)
 
-  class SyncResults < Struct.new(:synced, :failed, :invalid)
-  end
-
-  class Runner
-  end
-
-  class Source < Configurable
-
-    def syncable_details
-      []
+    def initialize(options = {})
+      super options.fetch(:email), options[:first_name], options[:last_name], (options[:synced] || {})
     end
 
-  end
-
-  class Destination < Configurable
-
-    def store(list)
-      SyncResults.new [], [], list
-    end
-
-  end
-
-  module Sources
-
-    class CampaignMonitor < Source
-
-      attr_reader :api_key, :list_id, :client_id
-
-      def configure
-        @api_key = configuration.fetch 'api_key'
-        @list_id = configuration.fetch 'list_id'
+    def merge!(other)
+      raise ArgumentError.new("invalid other person") unless other.email == email
+      other.synced.each_pair do |key, value|
+        synced[key] ||= value
       end
-
-      def syncable_details
-      end
-
     end
 
   end
 
-  module Destinations
-
-    class Slack < Destination
-    end
-
-    class TestFlight < Destination
-
-      attr_reader :email, :password, :app_id
-
-      def configure
-        @email = configuration.fetch 'email'
-        @password = configuration.fetch 'password'
-        @app_id = configuration.fetch 'app_id'
-
-        Spaceship::Tunes.login email, password
-
-      end
-
-      def app
-        @app ||= Spaceship::Tunes::Application.find(app_id)
-      end
-
-      def store(list)
-        existing = app.external_testers.map { |t| Person.new t.email, t.first_name, t.last_name }
-        added    = Syncer.diff_people existing, list
-
-        # Now, for the added people, we'll need to correctly push them to testflight...
-
-      end
-
-    end
-
+  class SyncResults < Struct.new(:service, :synced, :failed, :ignored)
   end
 
 end
