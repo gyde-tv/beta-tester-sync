@@ -1,14 +1,22 @@
+require 'logger'
+
 module Syncer
+
+  def self.logger
+    @_logger ||= Logger.new(STDOUT)
+  end
 
   def self.diff_by(a, b, &field)
     ia = Hash[a.map { |v| [field.call(v), v]} ]
     ib = Hash[b.map { |v| [field.call(v), v]} ]
-    p [ia, ib]
     (ia.keys - ib.keys).map { |k| ia[k] }.compact
   end
 
   class Configurable
     attr_reader :configuration
+
+    def logger; Syncer.logger; end
+    def service_key; self.class.service_key; end
 
     def self.from_config(configuration)
       parts = internal_configuration_key.split(".")
@@ -56,6 +64,13 @@ module Syncer
   end
 
   class SyncResults < Struct.new(:service, :synced, :failed, :ignored)
+
+    def to_sync_hash
+      (synced + ignored).each_with_object({}) do |i, o|
+        o[i.email] = {service => true}
+      end
+    end
+
   end
 
 end
