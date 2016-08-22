@@ -32,6 +32,31 @@ enabled = true
 token = "slack-channel-post-token"
 ```
 
+Alternatively, you can specify it in the form of environment variables - e.g:
+
+```
+SYNCER__CHECKIN_URL=your-checkin-url
+SYNCER__DESTINATIONS__SLACK__ENABLED=true
+SYNCER__DESTINATIONS__SLACK__TOKEN=slack-id
+SYNCER__DESTINATIONS__TEST_FLIGHT__APP_ID=itunes-app-id
+SYNCER__DESTINATIONS__TEST_FLIGHT__EMAIL=testflight-user-email
+SYNCER__DESTINATIONS__TEST_FLIGHT__PASSWORD=testflight-user-pw
+SYNCER__SOURCES__CAMPAIGN_MONITOR__API_KEY=cm-api-key
+SYNCER__SOURCES__CAMPAIGN_MONITOR__LIST_ID=cm-api-list-id
+```
+
+## Deployment
+
+Internally, we deploy to heroku, with zero normal dynos and a scheduled task set to run:
+
+```bash
+./bin/sync-beta-testers
+```
+
+every 10 minutes using heroku scheduler. Since it processes deltas, we end up paying nothing as the runtime is minimal. Likewise, we use the
+environment-based configuration formation.
+
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
